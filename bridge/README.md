@@ -49,3 +49,12 @@ otro nombre seguro para una conversación separada:
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\open-hermes.ps1 -Session arquitectura
 ```
+
+Para dejar el comando corto `hermes` disponible en nuevos paneles de PowerShell
+y Herdr, ejecuta una sola vez:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\install-hermes-shortcut.ps1
+```
+
+Después puedes escribir `hermes` o `hermes arquitectura`.
