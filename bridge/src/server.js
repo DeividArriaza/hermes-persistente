@@ -97,6 +97,31 @@ async function createServer(config) {
     return text((result.stdout || result.stderr).trim(), result.code !== 0);
   });
 
+  server.tool("prompt_agent", "Envía una tarea a un agente reconocido por Herdr y espera su estado final.", {
+    agentName: z.string().regex(/^[a-z][a-z0-9_-]{0,31}$/).describe("Nombre del agente Herdr"),
+    task: z.string().min(1).max(12000).describe("Instrucción concreta para el agente")
+  }, async ({ agentName, task }) => {
+    try {
+      requireHerdrContext();
+    } catch (error) {
+      return text(error.message, true);
+    }
+    const result = await execute("herdr", ["agent", "prompt", agentName, task, "--wait", "--timeout", "120000"]);
+    return text((result.stdout || result.stderr).trim(), result.code !== 0);
+  });
+
+  server.tool("read_agent", "Lee la salida reciente de un agente Herdr sin enviarle una nueva tarea.", {
+    agentName: z.string().regex(/^[a-z][a-z0-9_-]{0,31}$/).describe("Nombre del agente Herdr")
+  }, async ({ agentName }) => {
+    try {
+      requireHerdrContext();
+    } catch (error) {
+      return text(error.message, true);
+    }
+    const result = await execute("herdr", ["agent", "read", agentName, "--source", "recent-unwrapped", "--lines", "120"]);
+    return text((result.stdout || result.stderr).trim(), result.code !== 0);
+  });
+
   return server;
 }
 
