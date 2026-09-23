@@ -32,3 +32,20 @@ Internet.
    El endpoint resultante es `https://<nombre-tailnet>/mcp`.
 
 No subas `config.json` ni el token a Git.
+
+## Abrir Hermes desde Herdr
+
+Desde cualquier panel de Herdr en Windows puedes abrir la conversación CLI de
+Hermes con un único comando:
+
+```powershell
+Set-Location $HOME\hermes-herdr-bridge
+powershell -ExecutionPolicy Bypass -File .\open-hermes.ps1
+```
+
+El script entra por SSH a Contabo y continúa la sesión `control`. Puedes usar
+otro nombre seguro para una conversación separada:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\open-hermes.ps1 -Session arquitectura
+```
