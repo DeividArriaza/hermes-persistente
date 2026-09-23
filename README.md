@@ -15,10 +15,13 @@ este repositorio.
 - Docker Compose y la configuración de persistencia están definidos.
 - El dashboard queda publicado solamente en `127.0.0.1:9119`; se accede desde
   otro equipo mediante túnel SSH o una red privada como Tailscale.
-- Aún no se ha configurado un proveedor de modelo, un canal de mensajería,
-  Tailscale, dispositivos remotos ni acceso a repositorios.
-- La base vectorial es una fase posterior. Primero se valida Hermes con un
-  proyecto y una conversación funcional.
+- Hermes está autenticado con Codex y el bot de Discord está operativo.
+- Contabo y Windows están unidos al tailnet; Hermes llega al usuario remoto de
+  Windows mediante una clave SSH dedicada.
+- Herdr 0.9.1 y Codex CLI 0.156.1 están disponibles en Windows. OpenCode aún
+  debe instalarse en ese equipo si se quiere usar como agente.
+- Falta implementar el puente local de tareas descrito en la arquitectura y
+  validarlo sobre un repositorio de prueba.
 
 Lee [la arquitectura](docs/arquitectura.md) antes de otorgar acceso a otros
 dispositivos. Para preparar un equipo Windows como nodo de trabajo, usa la

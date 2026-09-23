@@ -58,11 +58,23 @@ New-Item -ItemType Directory -Force "$HOME\.ssh"
 ```
 
 El administrador de Hermes proporcionará una clave pública exclusiva para este
-equipo. Añádela exactamente como una línea a este archivo:
+equipo. Si el usuario es administrador (como suele ocurrir con OpenSSH en
+Windows), añádela exactamente como una línea al archivo global:
 
 ```powershell
-notepad "$HOME\.ssh\authorized_keys"
+notepad 'C:\ProgramData\ssh\administrators_authorized_keys'
 ```
+
+Después limita sus permisos y reinicia SSH:
+
+```powershell
+icacls 'C:\ProgramData\ssh\administrators_authorized_keys' /inheritance:r
+icacls 'C:\ProgramData\ssh\administrators_authorized_keys' /grant 'Administrators:F' 'SYSTEM:F'
+Restart-Service sshd
+```
+
+Para un usuario que no sea administrador, usa en cambio
+`$HOME\.ssh\authorized_keys`.
 
 Guarda el archivo. No pegues tokens, contraseñas ni claves privadas en
 `authorized_keys`; solo la clave pública que comienza con `ssh-ed25519`.

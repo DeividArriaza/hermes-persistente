@@ -32,9 +32,10 @@ flowchart LR
 
 Herdr puede mostrar y mantener en una misma interfaz las sesiones de varias
 máquinas conectadas por SSH. Cada máquina conserva su propio servidor Herdr y
-sus procesos. Actualmente, la automatización de agentes de Herdr se limita a
-un servidor a la vez; Hermes debe coordinar entre máquinas conectándose por
-SSH a cada una e invocando el CLI/local socket de Herdr.
+sus procesos. Su CLI de automatización sólo puede controlar el servidor local
+cuando se ejecuta desde un panel que Herdr administra (`HERDR_ENV=1`). Una
+shell SSH externa, incluido Hermes en Contabo, no cumple esa condición y no
+debe usar `herdr agent prompt` para manejar la sesión de un usuario.
 
 ## Conexión de dispositivos
 
@@ -50,11 +51,21 @@ Cada dispositivo tendrá:
 3. Herdr instalado y ejecutándose como el usuario dueño de sus repositorios.
 4. Codex y/o OpenCode autenticados localmente.
 
-Un puente inicial puede ser un comando SSH que invoque Herdr en el equipo:
+El puente correcto es un proceso local de cada equipo, iniciado dentro de un
+panel administrado por Herdr. Ese proceso recibe tareas autenticadas desde
+Hermes (por ejemplo, mediante una cola o webhook privado en Tailscale) y, al
+tener `HERDR_ENV=1`, usa el CLI de Herdr para crear paneles, iniciar Codex u
+OpenCode y leer su estado. Hermes usa SSH para verificar salud y administrar
+el puente, pero no para controlar directamente la sesión Herdr del usuario.
 
 ```text
-Hermes -> SSH privado -> herdr agent prompt <agente> <tarea>
+Hermes -> cola o webhook privado -> puente local en panel Herdr
+       -> CLI Herdr local -> Codex / OpenCode
 ```
+
+Como alternativa temporal, Hermes puede ejecutar un comando no interactivo
+por SSH (por ejemplo, `codex exec`) en un directorio explícito. Ese trabajo no
+queda gestionado por una sesión Herdr, por lo que no sustituye al puente.
 
 La primera validación debe usar un único equipo y un único repositorio.
 
@@ -115,7 +126,7 @@ son aprobados o proceden de fuentes versionadas.
 
 1. Desplegar Hermes persistente y completar el asistente de proveedor.
 2. Acceder al dashboard mediante túnel SSH o Tailscale.
-3. Conectar un primer equipo por Tailscale y SSH; validar una sesión Herdr.
-4. Crear el manifiesto de proyectos y el puente Hermes -> SSH -> Herdr.
+3. Conectar un primer equipo por Tailscale y SSH; validar Herdr y Codex.
+4. Crear el manifiesto de proyectos y el puente local de tareas de Hermes.
 5. Agregar PostgreSQL/pgvector después de validar el flujo con repositorios
    reales.
