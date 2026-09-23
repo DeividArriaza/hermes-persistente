@@ -58,3 +58,19 @@ powershell -ExecutionPolicy Bypass -File .\install-hermes-shortcut.ps1
 ```
 
 Después puedes escribir `hermes` o `hermes arquitectura`.
+
+## Abrir el entorno completo
+
+Desde un panel inicial de Herdr, ejecuta una sola vez por cada arranque del
+entorno:
+
+```powershell
+Set-Location $HOME\hermes-herdr-bridge
+powershell -ExecutionPolicy Bypass -File .\open-orchestrator.ps1
+```
+
+El script abre dos paneles sin quitar el foco del panel actual: uno mantiene el
+bridge MCP escuchando en el puerto 8787 y el otro abre el CLI persistente de
+Hermes en Contabo. No lo ejecutes dos veces en la misma sesión, pues crearía
+paneles duplicados. Para conservarlos al salir, desconecta el cliente de Herdr
+con `Ctrl+B`, luego `Q`; no detengas el servidor de Herdr.
