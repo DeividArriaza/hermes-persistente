@@ -1,0 +1,32 @@
+services:
+  hermes:
+    image: nousresearch/hermes-agent:v2026.9.14
+    container_name: hermes-orchestrator
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      HERMES_UID: ${HERMES_UID:-1001}
+      HERMES_GID: ${HERMES_GID:-1001}
+    volumes:
+      - ./data/hermes:/opt/data
+      - ./workspace:/workspace
+    command: ["gateway", "run"]
+
+  dashboard:
+    image: nousresearch/hermes-agent:v2026.9.14
+    container_name: hermes-dashboard
+    restart: unless-stopped
+    depends_on:
+      - hermes
+    env_file:
+      - .env
+    environment:
+      HERMES_UID: ${HERMES_UID:-1001}
+      HERMES_GID: ${HERMES_GID:-1001}
+    volumes:
+      - ./data/hermes:/opt/data
+    # Host networking lets Hermes bind the dashboard to the host loopback.
+    # This satisfies its local-only security requirement without exposing 9119.
+    network_mode: host
+    command: ["dashboard", "--host", "127.0.0.1", "--no-open"]
