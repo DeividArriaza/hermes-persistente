@@ -20,8 +20,9 @@ este repositorio.
   Windows mediante una clave SSH dedicada.
 - Herdr 0.9.1 y Codex CLI 0.156.1 están disponibles en Windows. OpenCode aún
   debe instalarse en ese equipo si se quiere usar como agente.
-- Falta implementar el puente local de tareas descrito en la arquitectura y
-  validarlo sobre un repositorio de prueba.
+- El bridge MCP local ya está instalado en Windows, sin repositorios
+  autorizados. Falta iniciarlo desde Herdr, publicarlo mediante Tailscale Serve
+  y validarlo sobre un repositorio de prueba.
 
 Lee [la arquitectura](docs/arquitectura.md) antes de otorgar acceso a otros
 dispositivos. Para preparar un equipo Windows como nodo de trabajo, usa la

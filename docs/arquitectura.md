@@ -67,6 +67,13 @@ Como alternativa temporal, Hermes puede ejecutar un comando no interactivo
 por SSH (por ejemplo, `codex exec`) en un directorio explícito. Ese trabajo no
 queda gestionado por una sesión Herdr, por lo que no sustituye al puente.
 
+La primera implementación está en [`bridge/`](../bridge/). Es un servidor MCP
+HTTP que escucha sólo en `127.0.0.1`, exige un token por nodo y permite una
+lista explícita de proyectos. Tailscale Serve publica el endpoint privado con
+HTTPS hacia Hermes. Windows ya tiene este bridge instalado sin proyectos
+autorizados; falta iniciarlo desde un panel de Herdr y registrar su URL MCP en
+Hermes.
+
 La primera validación debe usar un único equipo y un único repositorio.
 
 ## Datos y persistencia
