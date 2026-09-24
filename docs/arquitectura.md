@@ -12,12 +12,18 @@ el trabajo dentro de cada repositorio.
 
 ```mermaid
 flowchart LR
-  U[Teléfono o laptop] -->|Tailscale / SSH| H[Hermes en Contabo]
-  H --> K[Catálogo de proyectos y memoria]
-  H -->|SSH privado| A[Equipo A: Herdr + Codex/OpenCode]
-  H -->|SSH privado| B[Equipo B: Herdr + Codex/OpenCode]
-  A --> G[Git remoto]
-  B --> G
+  U[Discord o CLI de Hermes] --> H[Hermes Gateway<br/>Docker en Contabo]
+  H --> K[Memoria, skills y catálogo]
+  H -->|MCP HTTPS privado| LS[Tailscale Serve Linux]
+  H -->|MCP HTTPS privado| WS[Tailscale Serve Windows]
+  LS --> LB[Bridge Linux<br/>127.0.0.1:8787]
+  WS --> WB[Bridge Windows<br/>127.0.0.1:8787]
+  LB --> LH[Herdr Linux]
+  WB --> WH[Herdr Windows]
+  LH --> LC[Codex / OpenCode Linux]
+  WH --> WC[Codex / OpenCode Windows]
+  LC --> G[Git remoto]
+  WC --> G
 ```
 
 ## Componentes y responsabilidades
@@ -53,13 +59,13 @@ Cada dispositivo tendrá:
 
 El puente correcto es un proceso local de cada equipo, iniciado dentro de un
 panel administrado por Herdr. Ese proceso recibe tareas autenticadas desde
-Hermes (por ejemplo, mediante una cola o webhook privado en Tailscale) y, al
+Hermes por MCP HTTPS privado sobre Tailscale y, al
 tener `HERDR_ENV=1`, usa el CLI de Herdr para crear paneles, iniciar Codex u
 OpenCode y leer su estado. Hermes usa SSH para verificar salud y administrar
 el puente, pero no para controlar directamente la sesión Herdr del usuario.
 
 ```text
-Hermes -> cola o webhook privado -> puente local en panel Herdr
+Hermes -> MCP HTTPS privado -> bridge local en panel Herdr
        -> CLI Herdr local -> Codex / OpenCode
 ```
 
@@ -70,9 +76,42 @@ queda gestionado por una sesión Herdr, por lo que no sustituye al puente.
 La primera implementación está en [`bridge/`](../bridge/). Es un servidor MCP
 HTTP que escucha sólo en `127.0.0.1`, exige un token por nodo y permite una
 lista explícita de proyectos. Tailscale Serve publica el endpoint privado con
-HTTPS hacia Hermes. Windows ya tiene este bridge instalado sin proyectos
-autorizados; falta iniciarlo desde un panel de Herdr y registrar su URL MCP en
-Hermes.
+HTTPS hacia Hermes. Linux está activo y registrado como `linux_deiv`. Windows
+está registrado como `windows_deiv` y se recuperará cuando el equipo y su
+bridge estén activos. Ambos empiezan sin proyectos autorizados.
+
+## Red, claves y alcance
+
+Tailscale une Contabo, Linux y Windows sin publicar SSH, Herdr ni el puerto
+8787 en Internet. Cada bridge escucha sólo en `127.0.0.1:8787`; Tailscale Serve
+termina HTTPS dentro del tailnet y reenvía exclusivamente a ese puerto local.
+Hermes se autentica ante cada MCP con un token distinto, guardado fuera de Git.
+
+| Ruta | Uso |
+|---|---|
+| Contabo → Linux/Windows | Comprobación, instalación y mantenimiento mediante una clave dedicada. No controla Herdr directamente. |
+| Linux → Contabo | Abre el CLI de Hermes desde un panel Herdr con una clave dedicada. |
+| Windows → Contabo | Abre el CLI de Hermes con la identidad SSH configurada por el usuario. |
+
+El bridge no ofrece una shell arbitraria. Expone salud, proyectos autorizados,
+inicio de Codex, estado del agente, envío de tarea y lectura de salida. Actúa
+como el usuario local que posee el repositorio.
+
+## Flujo de una tarea
+
+1. Escribes a Hermes desde Discord o desde su CLI dentro de Herdr.
+2. La skill `orquestar-herdr` consulta salud y proyectos del nodo adecuado.
+3. Hermes llama a `linux_deiv` o `windows_deiv` por MCP sobre Tailscale.
+4. El bridge controla Herdr localmente, inicia Codex y entrega la tarea.
+5. El resultado vuelve por MCP y Hermes responde por el canal original.
+
+## Inicio simplificado
+
+En Linux, `~/hermes-herdr-bridge/open-orchestrator.sh`, ejecutado desde un
+panel Herdr, crea un panel para el bridge y otro para el CLI de Hermes. Mantén
+ambos vivos y usa `Ctrl+B`, luego `Q`, para desconectar sin detenerlos. Al
+apagar un equipo, su bridge deja de responder y Hermes debe tratar ese nodo
+como no disponible hasta que `node_health` vuelva a ser sano.
 
 La primera validación debe usar un único equipo y un único repositorio.
 

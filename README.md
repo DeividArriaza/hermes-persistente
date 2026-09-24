@@ -16,13 +16,12 @@ este repositorio.
 - El dashboard queda publicado solamente en `127.0.0.1:9119`; se accede desde
   otro equipo mediante túnel SSH o una red privada como Tailscale.
 - Hermes está autenticado con Codex y el bot de Discord está operativo.
-- Contabo y Windows están unidos al tailnet; Hermes llega al usuario remoto de
-  Windows mediante una clave SSH dedicada.
-- Herdr 0.9.1 y Codex CLI 0.156.1 están disponibles en Windows. OpenCode aún
-  debe instalarse en ese equipo si se quiere usar como agente.
-- El bridge MCP local ya está instalado en Windows, sin repositorios
-  autorizados. Falta iniciarlo desde Herdr, publicarlo mediante Tailscale Serve
-  y validarlo sobre un repositorio de prueba.
+- Contabo, Linux y Windows pertenecen al mismo tailnet.
+- Linux tiene Herdr, Codex y un bridge MCP activo, publicado como
+  `linux_deiv`. Windows queda registrado como `windows_deiv` y se recupera
+  cuando el equipo y su bridge estén activos.
+- Cada bridge inicia sin repositorios autorizados. Las rutas se conceden de
+  forma explícita en su `config.json` privado.
 
 Lee [la arquitectura](docs/arquitectura.md) antes de otorgar acceso a otros
 dispositivos. Para preparar un equipo Windows como nodo de trabajo, usa la
@@ -69,6 +68,18 @@ docker compose logs -f dashboard
 docker compose down                 # no borra datos persistentes
 docker compose pull && docker compose up -d
 ```
+
+## Uso diario desde Herdr
+
+En Linux, dentro de un panel Herdr, ejecuta una vez por arranque:
+
+```bash
+~/hermes-herdr-bridge/open-orchestrator.sh
+```
+
+El script abre un panel para el bridge MCP y otro para el CLI de Hermes en
+Contabo. Si esos paneles ya viven, no lo ejecutes de nuevo. Para desconectarte
+sin detenerlos usa `Ctrl+B`, luego `Q`.
 
 ## Migración y respaldo
 
