@@ -33,6 +33,21 @@ Internet.
 
 No subas `config.json` ni el token a Git.
 
+## Primera instalación en Linux
+
+Instala Herdr, Codex y Node.js como el usuario que posee los repositorios.
+Después copia este directorio a `~/hermes-herdr-bridge`, ejecuta `npm ci` y
+crea `config.json` desde el ejemplo. El token vive con permisos `0600` en
+`~/.config/hermes-herdr-bridge/bridge.env`; no lo añadas a perfiles de shell ni
+a repositorios.
+
+Desde un panel de Herdr inicia el bridge así:
+
+```bash
+cd ~/hermes-herdr-bridge
+./start-bridge.sh
+```
+
 ## Abrir Hermes desde Herdr
 
 Desde cualquier panel de Herdr en Windows puedes abrir la conversación CLI de
