@@ -63,8 +63,9 @@ async function createServer(config) {
 
   server.tool("start_codex", "Abre Codex en un proyecto autorizado usando un panel nuevo de Herdr.", {
     project: z.string().describe("Identificador de proyecto devuelto por list_projects"),
-    agentName: z.string().regex(/^[a-z][a-z0-9_-]{0,31}$/).describe("Nombre único del agente")
-  }, async ({ project, agentName }) => {
+    agentName: z.string().regex(/^[a-z][a-z0-9_-]{0,31}$/).describe("Nombre único del agente"),
+    model: z.literal("gpt-5.6-luna").optional().describe("Modelo permitido para tareas delegadas")
+  }, async ({ project, agentName, model }) => {
     try {
       requireHerdrContext();
     } catch (error) {
@@ -82,7 +83,9 @@ async function createServer(config) {
     } catch {
       return text(`Herdr no devolvió el identificador del panel: ${split.stdout}`, true);
     }
-    const started = await execute("herdr", ["agent", "start", agentName, "--kind", "codex", "--pane", paneId]);
+    const startArgs = ["agent", "start", agentName, "--kind", "codex", "--pane", paneId];
+    if (model) startArgs.push("--", "--model", model);
+    const started = await execute("herdr", startArgs);
     if (started.code !== 0) return text(`No se pudo iniciar Codex: ${started.stderr || started.stdout}`, true);
     return text(JSON.stringify({ node: config.nodeName, project, agentName, paneId, result: started.stdout.trim() }, null, 2));
   });
