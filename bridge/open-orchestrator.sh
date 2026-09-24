@@ -6,7 +6,7 @@ if [[ "${HERDR_ENV:-}" != "1" ]]; then
   exit 1
 fi
 
-script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+script_dir=$(dirname -- "$(readlink -f -- "${BASH_SOURCE[0]}")")
 
 new_pane() {
   local direction=$1
