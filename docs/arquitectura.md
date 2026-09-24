@@ -113,6 +113,26 @@ ambos vivos y usa `Ctrl+B`, luego `Q`, para desconectar sin detenerlos. Al
 apagar un equipo, su bridge deja de responder y Hermes debe tratar ese nodo
 como no disponible hasta que `node_health` vuelva a ser sano.
 
+## Diagnóstico de conectividad
+
+Linux se usa desde redes de casa, trabajo y universidad. Algunas de esas redes
+pueden bloquear o degradar Tailscale, sus relés DERP o SSH. Si Contabo recibe
+`Connection timed out`, un MCP deja de responder o `tailscale ping` falla,
+primero comprobar la red activa de Linux y probar otra red o un hotspot. No
+reiniciar claves, bridges, puertos ni Tailscale Serve como primera reacción:
+la configuración puede estar correcta aunque la red actual impida la ruta.
+
+En Linux, las comprobaciones mínimas son:
+
+```bash
+tailscale status
+tailscale ping hermes-contabo
+sudo systemctl status ssh --no-pager
+```
+
+Cuando el nodo vuelva a aparecer en el tailnet, Contabo reintentará SSH y
+Hermes recuperará el MCP al volver a estar disponible el bridge.
+
 La primera validación debe usar un único equipo y un único repositorio.
 
 ## Datos y persistencia
