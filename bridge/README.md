@@ -48,6 +48,16 @@ cd ~/hermes-herdr-bridge
 ./start-bridge.sh
 ```
 
+Para levantar el entorno completo desde un panel inicial de Herdr, ejecuta:
+
+```bash
+~/hermes-herdr-bridge/open-orchestrator.sh
+```
+
+El script abre un panel para el bridge y otro para el CLI de Hermes. Sólo se
+ejecuta una vez por arranque del entorno; al desconectar Herdr con `Ctrl+B`,
+luego `Q`, los paneles siguen vivos mientras Linux siga encendido.
+
 ## Abrir Hermes desde Herdr
 
 Desde cualquier panel de Herdr en Windows puedes abrir la conversación CLI de
