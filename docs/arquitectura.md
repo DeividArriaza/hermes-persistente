@@ -113,6 +113,45 @@ ambos vivos y usa `Ctrl+B`, luego `Q`, para desconectar sin detenerlos. Al
 apagar un equipo, su bridge deja de responder y Hermes debe tratar ese nodo
 como no disponible hasta que `node_health` vuelva a ser sano.
 
+### Trabajo diario y cuentas de Codex
+
+El bridge inicia todos los agentes Codex con `--no-daemon`. Cada panel es un
+proceso independiente: evita el daemon compartido de Codex, que Windows no
+permite iniciar desde una sesión elevada. Herdr y los paneles de desarrollo se
+deben abrir como el usuario normal de Windows, nunca con "Ejecutar como
+administrador".
+
+Se pueden abrir dos sesiones Codex al mismo tiempo, una por cuenta. Cada
+cuenta debe tener un `CODEX_HOME` distinto, porque allí Codex guarda su inicio
+de sesión y sus sesiones. En Windows se prepara una vez desde PowerShell
+normal:
+
+```powershell
+$env:CODEX_HOME = "$HOME\.codex-personal"
+codex login
+
+$env:CODEX_HOME = "$HOME\.codex-universidad"
+codex login
+```
+
+Después, crea dos paneles de Herdr y en cada uno ejecuta una de estas líneas:
+
+```powershell
+$env:CODEX_HOME = "$HOME\.codex-personal"; codex --no-daemon
+$env:CODEX_HOME = "$HOME\.codex-universidad"; codex --no-daemon
+```
+
+No se comparten tokens ni el historial entre ambas carpetas. El bridge MCP
+actual usa la cuenta asociada al proceso con que se inició; una ampliación
+posterior puede declarar perfiles de cuenta de forma explícita si Hermes debe
+delegar a ambas.
+
+Para reducir fricción, el flujo recomendado es local: abre los paneles Codex u
+OpenCode directamente en Herdr para editar y probar. Hermes en Contabo queda
+para arquitectura, prioridades, memoria y coordinación. El puente MCP se usa
+cuando convenga delegar una tarea desde Hermes y no es un requisito para
+programar.
+
 ## Diagnóstico de conectividad
 
 Linux se usa desde redes de casa, trabajo y universidad. Algunas de esas redes

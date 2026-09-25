@@ -83,8 +83,12 @@ async function createServer(config) {
     } catch {
       return text(`Herdr no devolvió el identificador del panel: ${split.stdout}`, true);
     }
-    const startArgs = ["agent", "start", agentName, "--kind", "codex", "--pane", paneId];
-    if (model) startArgs.push("--", "--model", model);
+    // El daemon compartido de Codex no es compatible con procesos lanzados
+    // desde un Herdr/PowerShell elevado en Windows. Ejecutar cada agente de
+    // forma autónoma evita depender de ese daemon en todos los nodos.
+    const codexArgs = ["--no-daemon"];
+    if (model) codexArgs.push("--model", model);
+    const startArgs = ["agent", "start", agentName, "--kind", "codex", "--pane", paneId, "--", ...codexArgs];
     const started = await execute("herdr", startArgs);
     if (started.code !== 0) return text(`No se pudo iniciar Codex: ${started.stderr || started.stdout}`, true);
     return text(JSON.stringify({ node: config.nodeName, project, agentName, paneId, result: started.stdout.trim() }, null, 2));
