@@ -113,6 +113,10 @@ ambos vivos y usa `Ctrl+B`, luego `Q`, para desconectar sin detenerlos. Al
 apagar un equipo, su bridge deja de responder y Hermes debe tratar ese nodo
 como no disponible hasta que `node_health` vuelva a ser sano.
 
+El lanzador también ejecuta `tailscale serve --bg --yes 8787`. Así asegura la
+ruta privada `https://deiv-linux.tail281cfe.ts.net` hacia el bridge recién
+abierto, sin que el usuario tenga que publicar el puerto en un segundo paso.
+
 ### Trabajo diario y cuentas de Codex
 
 El bridge inicia todos los agentes Codex con `--no-daemon`. Cada panel es un

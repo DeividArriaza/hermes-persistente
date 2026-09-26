@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+export PATH="$HOME/.local/bin:$PATH"
+
 session_name=${1:-control}
 if [[ ! "$session_name" =~ ^[A-Za-z0-9_-]{1,48}$ ]]; then
   echo 'El nombre de sesión sólo admite letras, números, guiones y guiones bajos.' >&2

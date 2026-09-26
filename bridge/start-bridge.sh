@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+export PATH="$HOME/.local/bin:$PATH"
+
 if [[ "${HERDR_ENV:-}" != "1" ]]; then
   echo 'Abre este script desde un panel administrado por Herdr.' >&2
   exit 1
