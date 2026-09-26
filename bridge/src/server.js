@@ -42,6 +42,15 @@ function requireHerdrContext() {
   }
 }
 
+async function readAgentTranscript(agentName, lines = 240) {
+  return execute("herdr", [
+    "agent", "read", agentName,
+    "--source", "recent-unwrapped",
+    "--lines", String(lines),
+    "--format", "text"
+  ]);
+}
+
 async function createServer(config) {
   const server = new McpServer({ name: `hermes-herdr-bridge-${config.nodeName}`, version: "0.1.0" });
 
@@ -104,7 +113,7 @@ async function createServer(config) {
     return text((result.stdout || result.stderr).trim(), result.code !== 0);
   });
 
-  server.tool("prompt_agent", "Envía una tarea a un agente reconocido por Herdr y espera su estado final.", {
+  server.tool("prompt_agent", "Envía una tarea a un agente reconocido por Herdr, espera su estado final y devuelve su transcripción reciente.", {
     agentName: z.string().regex(/^[a-z][a-z0-9_-]{0,31}$/).describe("Nombre del agente Herdr"),
     task: z.string().min(1).max(12000).describe("Instrucción concreta para el agente")
   }, async ({ agentName, task }) => {
@@ -114,18 +123,25 @@ async function createServer(config) {
       return text(error.message, true);
     }
     const result = await execute("herdr", ["agent", "prompt", agentName, task, "--wait", "--timeout", "120000"]);
-    return text((result.stdout || result.stderr).trim(), result.code !== 0);
+    if (result.code !== 0) return text((result.stdout || result.stderr).trim(), true);
+
+    const transcript = await readAgentTranscript(agentName);
+    if (transcript.code !== 0) {
+      return text(`La tarea terminó, pero no se pudo leer su salida: ${transcript.stderr || transcript.stdout}`, true);
+    }
+    return text(`Estado de la tarea:\n${(result.stdout || result.stderr).trim()}\n\nTranscripción del agente:\n${(transcript.stdout || transcript.stderr).trim()}`);
   });
 
   server.tool("read_agent", "Lee la salida reciente de un agente Herdr sin enviarle una nueva tarea.", {
-    agentName: z.string().regex(/^[a-z][a-z0-9_-]{0,31}$/).describe("Nombre del agente Herdr")
-  }, async ({ agentName }) => {
+    agentName: z.string().regex(/^[a-z][a-z0-9_-]{0,31}$/).describe("Nombre del agente Herdr"),
+    lines: z.number().int().min(20).max(600).optional().describe("Número de líneas recientes; 240 por defecto")
+  }, async ({ agentName, lines }) => {
     try {
       requireHerdrContext();
     } catch (error) {
       return text(error.message, true);
     }
-    const result = await execute("herdr", ["agent", "read", agentName, "--source", "recent-unwrapped", "--lines", "120"]);
+    const result = await readAgentTranscript(agentName, lines ?? 240);
     return text((result.stdout || result.stderr).trim(), result.code !== 0);
   });
 
