@@ -40,5 +40,7 @@ supongas que sus repositorios existen en el otro sistema.
 - No inicies más de un agente para la misma tarea sin que el usuario lo pida.
 - No autorices, respondas ni fuerces interacciones bloqueadas de un agente sin
   mostrar primero el estado al usuario.
-- Si un proyecto no aparece en `list_projects`, pide al usuario que lo registre
-  en la configuración local del bridge.
+- Si un proyecto no aparece en `list_projects`, vuelve a consultar la lista:
+  los repositorios Git bajo las raíces autorizadas se descubren
+  automáticamente. Solo pide intervención si está fuera de esas raíces o no
+  es un repositorio Git.

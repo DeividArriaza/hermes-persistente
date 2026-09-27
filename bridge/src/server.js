@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
-import { existsSync } from "node:fs";
+import { existsSync, readdirSync } from "node:fs";
+import { basename, join, relative } from "node:path";
 import { readFile } from "node:fs/promises";
 import { spawn } from "node:child_process";
 import express from "express";
@@ -42,6 +43,49 @@ function requireHerdrContext() {
   }
 }
 
+const IGNORED_DIRECTORIES = new Set([
+  ".cache", ".codex", ".config", ".git", ".local", ".npm", ".ssh",
+  "node_modules", "vendor", ".venv", "venv", "dist", "build"
+]);
+
+function discoverGitProjects(root, maxDepth = 10) {
+  const found = [];
+  const visit = (directory, depth) => {
+    if (!existsSync(directory) || depth > maxDepth) return;
+    if (existsSync(join(directory, ".git"))) {
+      found.push(directory);
+      return;
+    }
+    let entries;
+    try {
+      entries = readdirSync(directory, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
+      if (!entry.isDirectory() || entry.isSymbolicLink() || IGNORED_DIRECTORIES.has(entry.name)) continue;
+      visit(join(directory, entry.name), depth + 1);
+    }
+  };
+  visit(root, 0);
+  return found;
+}
+
+function projectsFor(config) {
+  const projects = { ...(config.allowedProjects ?? {}) };
+  for (const root of config.allowedRoots ?? []) {
+    for (const path of discoverGitProjects(root)) {
+      const suffix = relative(root, path).replace(/[^a-zA-Z0-9]+/g, "_").replace(/^_|_$/g, "").toLowerCase();
+      const baseId = `auto_${basename(root).replace(/[^a-zA-Z0-9]+/g, "_").toLowerCase()}_${suffix || "root"}`;
+      let id = baseId;
+      let duplicate = 2;
+      while (projects[id] && projects[id] !== path) id = `${baseId}_${duplicate++}`;
+      projects[id] = path;
+    }
+  }
+  return projects;
+}
+
 async function readAgentTranscript(agentName, lines = 240) {
   return execute("herdr", [
     "agent", "read", agentName,
@@ -65,8 +109,8 @@ async function createServer(config) {
     }, null, 2), !herdrContext || status.code !== 0);
   });
 
-  server.tool("list_projects", "Lista los proyectos que este nodo permite usar.", {}, async () => {
-    const projects = Object.entries(config.allowedProjects).map(([id, path]) => ({ id, path, available: existsSync(path) }));
+  server.tool("list_projects", "Lista los proyectos autorizados, incluidos los repositorios Git descubiertos bajo las raíces permitidas.", {}, async () => {
+    const projects = Object.entries(projectsFor(config)).map(([id, path]) => ({ id, path, available: existsSync(path) }));
     return text(JSON.stringify({ node: config.nodeName, projects }, null, 2));
   });
 
@@ -80,7 +124,7 @@ async function createServer(config) {
     } catch (error) {
       return text(error.message, true);
     }
-    const projectPath = config.allowedProjects[project];
+    const projectPath = projectsFor(config)[project];
     if (!projectPath) return text(`Proyecto no autorizado: ${project}`, true);
     if (!existsSync(projectPath)) return text(`El proyecto configurado no existe: ${projectPath}`, true);
 
@@ -150,7 +194,7 @@ async function createServer(config) {
 
 async function main() {
   const config = JSON.parse(await readFile(parseArguments(), "utf8"));
-  if (!config.nodeName || !config.tokenEnv || !config.allowedProjects) throw new Error("Configuración incompleta.");
+  if (!config.nodeName || !config.tokenEnv || (!config.allowedProjects && !config.allowedRoots)) throw new Error("Configuración incompleta.");
   const token = process.env[config.tokenEnv];
   if (!token) throw new Error(`Falta la variable de entorno ${config.tokenEnv}.`);
 

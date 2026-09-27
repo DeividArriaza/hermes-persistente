@@ -95,7 +95,10 @@ Hermes se autentica ante cada MCP con un token distinto, guardado fuera de Git.
 
 El bridge no ofrece una shell arbitraria. Expone salud, proyectos autorizados,
 inicio de Codex, estado del agente, envío de tarea y lectura de salida. Actúa
-como el usuario local que posee el repositorio.
+como el usuario local que posee el repositorio. Además de rutas puntuales,
+puede configurarse con `allowedRoots`: en cada `list_projects` descubre los
+repositorios Git bajo esas raíces. Así, un repositorio nuevo aparece sin editar
+el bridge ni reiniciarlo. En Linux, la raíz concedida es `/home/deiv`.
 
 ## Flujo de una tarea
 

@@ -5,5 +5,8 @@
   "tokenEnv": "HERMES_HERDR_BRIDGE_TOKEN",
   "allowedProjects": {
     "proyecto-de-prueba": "C:\\Users\\dlope\\source\\proyecto-de-prueba"
-  }
+  },
+  "allowedRoots": [
+    "C:\\Users\\dlope\\source"
+  ]
 }
