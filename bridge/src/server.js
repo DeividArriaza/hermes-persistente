@@ -295,7 +295,7 @@ async function createServer(config) {
 }
 
 async function main() {
-  const config = JSON.parse(await readFile(parseArguments(), "utf8"));
+  const config = JSON.parse((await readFile(parseArguments(), "utf8")).replace(/^\uFEFF/, ""));
   if (!config.nodeName || !config.tokenEnv || (!config.allowedProjects && !config.allowedRoots)) throw new Error("Configuración incompleta.");
   const token = process.env[config.tokenEnv];
   if (!token) throw new Error(`Falta la variable de entorno ${config.tokenEnv}.`);
