@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { existsSync, readdirSync } from "node:fs";
-import { basename, join, relative } from "node:path";
-import { readFile } from "node:fs/promises";
+import { basename, extname, isAbsolute, join, relative, sep } from "node:path";
+import { readFile, realpath } from "node:fs/promises";
 import { spawn } from "node:child_process";
 import express from "express";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -20,7 +20,7 @@ function execute(command, args, options = {}) {
   return new Promise((resolve) => {
     const child = spawn(command, args, {
       cwd: options.cwd,
-      env: process.env,
+      env: options.env ?? process.env,
       shell: false,
       windowsHide: true
     });
@@ -31,6 +31,49 @@ function execute(command, args, options = {}) {
     child.on("error", (error) => resolve({ code: -1, stdout, stderr: error.message }));
     child.on("close", (code) => resolve({ code: code ?? -1, stdout, stderr }));
   });
+}
+
+function codexAccountConfig(config) {
+  const account = config.codexAccount;
+  if (!account?.email || !account?.home) {
+    return { error: "Falta codexAccount.email o codexAccount.home en la configuración privada del bridge." };
+  }
+  if (!isAbsolute(account.home)) {
+    return { error: "codexAccount.home debe ser una ruta absoluta." };
+  }
+  return { email: account.email.toLowerCase(), home: account.home };
+}
+
+function emailFromIdToken(idToken) {
+  try {
+    const payload = JSON.parse(Buffer.from(idToken.split(".")[1], "base64url").toString("utf8"));
+    return typeof payload.email === "string" ? payload.email.toLowerCase() : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+async function verifyCodexAccount(config) {
+  const account = codexAccountConfig(config);
+  if (account.error) return account;
+
+  const authPath = join(account.home, "auth.json");
+  let auth;
+  try {
+    auth = JSON.parse(await readFile(authPath, "utf8"));
+  } catch {
+    return { error: `No se encontró una sesión de Codex legible en ${authPath}. Inicia sesión con la cuenta universitaria primero.` };
+  }
+  const actualEmail = emailFromIdToken(auth?.tokens?.id_token);
+  if (!actualEmail) return { error: "La sesión de Codex no contiene una identidad verificable. Vuelve a iniciar sesión." };
+  if (actualEmail !== account.email) {
+    return { error: `La sesión de Codex configurada pertenece a ${actualEmail}, no a ${account.email}.` };
+  }
+
+  const env = { ...process.env, CODEX_HOME: account.home };
+  const status = await execute("codex", ["login", "status"], { env });
+  if (status.code !== 0) return { error: `La sesión universitaria de Codex no está activa: ${status.stderr || status.stdout}`.trim() };
+  return { email: actualEmail, home: account.home, env };
 }
 
 function text(value, isError = false) {
@@ -86,6 +129,49 @@ function projectsFor(config) {
   return projects;
 }
 
+async function resolvePermittedFile(config, requestedPath) {
+  if (!isAbsolute(requestedPath)) {
+    throw new Error("La ruta debe ser absoluta, por ejemplo /home/deiv/Universidad/software/tarea5.pdf.");
+  }
+
+  let target;
+  try {
+    target = await realpath(requestedPath);
+  } catch {
+    throw new Error(`El archivo no existe o no se puede resolver: ${requestedPath}`);
+  }
+
+  const roots = [...new Set([...(config.allowedRoots ?? []), ...Object.values(config.allowedProjects ?? {})])];
+  for (const root of roots) {
+    try {
+      const resolvedRoot = await realpath(root);
+      const pathFromRoot = relative(resolvedRoot, target);
+      if (pathFromRoot === "" || (!pathFromRoot.startsWith(`..${sep}`) && pathFromRoot !== ".." && !isAbsolute(pathFromRoot))) {
+        return target;
+      }
+    } catch {
+      // Una raíz que aún no existe no concede acceso.
+    }
+  }
+  throw new Error("La ruta queda fuera de las raíces autorizadas del bridge.");
+}
+
+async function readPermittedFile(config, requestedPath, maxChars) {
+  const path = await resolvePermittedFile(config, requestedPath);
+  let content;
+  if (extname(path).toLowerCase() === ".pdf") {
+    const result = await execute("pdftotext", ["-layout", path, "-"]);
+    if (result.code !== 0) throw new Error(`No se pudo extraer el PDF: ${result.stderr || result.stdout}`);
+    content = result.stdout;
+  } else {
+    const buffer = await readFile(path);
+    if (buffer.includes(0)) throw new Error("El archivo parece binario; el bridge solo puede leer texto y PDF.");
+    content = buffer.toString("utf8");
+  }
+
+  return { path, content: content.slice(0, maxChars), truncated: content.length > maxChars };
+}
+
 async function readAgentTranscript(agentName, lines = 240) {
   return execute("herdr", [
     "agent", "read", agentName,
@@ -114,6 +200,17 @@ async function createServer(config) {
     return text(JSON.stringify({ node: config.nodeName, projects }, null, 2));
   });
 
+  server.tool("read_file", "Lee un archivo de texto o extrae texto de un PDF dentro de las raíces autorizadas del nodo.", {
+    path: z.string().min(1).describe("Ruta absoluta del archivo dentro de una raíz autorizada"),
+    maxChars: z.number().int().min(1000).max(60000).optional().describe("Máximo de caracteres que se devolverán; 30000 por defecto")
+  }, async ({ path, maxChars }) => {
+    try {
+      return text(JSON.stringify(await readPermittedFile(config, path, maxChars ?? 30000), null, 2));
+    } catch (error) {
+      return text(error.message, true);
+    }
+  });
+
   server.tool("start_codex", "Abre Codex en un proyecto autorizado usando un panel nuevo de Herdr.", {
     project: z.string().describe("Identificador de proyecto devuelto por list_projects"),
     agentName: z.string().regex(/^[a-z][a-z0-9_-]{0,31}$/).describe("Nombre único del agente"),
@@ -128,7 +225,12 @@ async function createServer(config) {
     if (!projectPath) return text(`Proyecto no autorizado: ${project}`, true);
     if (!existsSync(projectPath)) return text(`El proyecto configurado no existe: ${projectPath}`, true);
 
-    const split = await execute("herdr", ["pane", "split", "--current", "--direction", "right", "--cwd", projectPath, "--no-focus"]);
+    // No abrir agentes con la cuenta accidentalmente heredada por Herdr. La
+    // identidad se lee del id_token local, sin exponer tokens ni credenciales.
+    const account = await verifyCodexAccount(config);
+    if (account.error) return text(`No se iniciará Codex: ${account.error}`, true);
+
+    const split = await execute("herdr", ["pane", "split", "--current", "--direction", "right", "--cwd", projectPath, "--no-focus"], { env: account.env });
     if (split.code !== 0) return text(`No se pudo crear el panel: ${split.stderr || split.stdout}`, true);
     let paneId;
     try {
@@ -142,9 +244,9 @@ async function createServer(config) {
     const codexArgs = ["--no-daemon"];
     if (model) codexArgs.push("--model", model);
     const startArgs = ["agent", "start", agentName, "--kind", "codex", "--pane", paneId, "--", ...codexArgs];
-    const started = await execute("herdr", startArgs);
+    const started = await execute("herdr", startArgs, { env: account.env });
     if (started.code !== 0) return text(`No se pudo iniciar Codex: ${started.stderr || started.stdout}`, true);
-    return text(JSON.stringify({ node: config.nodeName, project, agentName, paneId, result: started.stdout.trim() }, null, 2));
+    return text(JSON.stringify({ node: config.nodeName, project, agentName, paneId, account: account.email, result: started.stdout.trim() }, null, 2));
   });
 
   server.tool("agent_status", "Consulta los agentes que Herdr reconoce en este nodo.", {}, async () => {

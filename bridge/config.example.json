@@ -3,6 +3,10 @@
   "listenHost": "127.0.0.1",
   "listenPort": 8787,
   "tokenEnv": "HERMES_HERDR_BRIDGE_TOKEN",
+  "codexAccount": {
+    "email": "lop24730@uvg.edu.gt",
+    "home": "C:\\Users\\dlope\\.codex-universidad"
+  },
   "allowedProjects": {
     "proyecto-de-prueba": "C:\\Users\\dlope\\source\\proyecto-de-prueba"
   },

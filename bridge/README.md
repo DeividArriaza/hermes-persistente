@@ -12,8 +12,11 @@ Internet.
 
 1. Copia este directorio a Windows y abre PowerShell en él.
 2. Ejecuta `npm install`.
-3. Copia `config.example.json` como `config.json` y registra sólo repositorios
-   que Hermes pueda usar.
+3. Copia `config.example.json` como `config.json`, registra sólo repositorios
+   que Hermes pueda usar y conserva `codexAccount` con el correo universitario
+   y su carpeta `CODEX_HOME`. Antes de iniciar el bridge, autentica esa carpeta
+   con `codex login`; el bridge no abrirá agentes si la sesión no corresponde a
+   `lop24730@uvg.edu.gt`.
 4. Genera un token aleatorio y guárdalo como variable de entorno de usuario:
 
    ```powershell
@@ -75,14 +78,20 @@ otro nombre seguro para una conversación separada:
 powershell -ExecutionPolicy Bypass -File .\open-hermes.ps1 -Session arquitectura
 ```
 
-Para dejar el comando corto `hermes` disponible en nuevos paneles de PowerShell
-y Herdr, ejecuta una sola vez:
+Para instalar atajos en nuevos paneles de PowerShell y Herdr, ejecuta una sola
+vez:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\install-hermes-shortcut.ps1
 ```
 
-Después puedes escribir `hermes` o `hermes arquitectura`.
+Después cierra y vuelve a abrir Herdr o PowerShell. Los comandos serán:
+
+```powershell
+hermes-contabo                 # sesión control
+hermes-contabo arquitectura    # sesión independiente
+hermes-workbench               # bridge Windows y CLI de Hermes
+```
 
 ## Abrir el entorno completo
 
@@ -90,8 +99,7 @@ Desde un panel inicial de Herdr, ejecuta una sola vez por cada arranque del
 entorno:
 
 ```powershell
-Set-Location $HOME\hermes-herdr-bridge
-powershell -ExecutionPolicy Bypass -File .\open-orchestrator.ps1
+hermes-workbench
 ```
 
 El script abre dos paneles sin quitar el foco del panel actual: uno mantiene el

@@ -94,8 +94,10 @@ Hermes se autentica ante cada MCP con un token distinto, guardado fuera de Git.
 | Windows → Contabo | Abre el CLI de Hermes con la identidad SSH configurada por el usuario. |
 
 El bridge no ofrece una shell arbitraria. Expone salud, proyectos autorizados,
-inicio de Codex, estado del agente, envío de tarea y lectura de salida. Actúa
-como el usuario local que posee el repositorio. Además de rutas puntuales,
+lectura de archivos de texto y PDFs, inicio de Codex, estado del agente, envío
+de tarea y lectura de salida. Actúa como el usuario local que posee el
+repositorio. La lectura de archivos se limita a las raíces autorizadas y no
+acepta binarios. Además de rutas puntuales,
 puede configurarse con `allowedRoots`: en cada `list_projects` descubre los
 repositorios Git bajo esas raíces. Así, un repositorio nuevo aparece sin editar
 el bridge ni reiniciarlo. En Linux, la raíz concedida es `/home/deiv`.
@@ -149,9 +151,22 @@ $env:CODEX_HOME = "$HOME\.codex-universidad"; codex --no-daemon
 ```
 
 No se comparten tokens ni el historial entre ambas carpetas. El bridge MCP
-actual usa la cuenta asociada al proceso con que se inició; una ampliación
-posterior puede declarar perfiles de cuenta de forma explícita si Hermes debe
-delegar a ambas.
+inicia agentes únicamente después de validar el perfil declarado en su
+`config.json` privado. Para el perfil universitario configura lo siguiente
+(ajusta la ruta si el usuario de Windows es distinto):
+
+```json
+"codexAccount": {
+  "email": "lop24730@uvg.edu.gt",
+  "home": "C:\\Users\\dlope\\.codex-universidad"
+}
+```
+
+Antes de crear el panel, el bridge confirma que `auth.json` existe en ese
+`CODEX_HOME`, que el correo del token coincide y que `codex login status` es
+correcto. Si cualquiera de esas comprobaciones falla, no inicia Codex. El
+`CODEX_HOME` se propaga al comando de Herdr para evitar usar la cuenta personal
+heredada por accidente.
 
 Para reducir fricción, el flujo recomendado es local: abre los paneles Codex u
 OpenCode directamente en Herdr para editar y probar. Hermes en Contabo queda

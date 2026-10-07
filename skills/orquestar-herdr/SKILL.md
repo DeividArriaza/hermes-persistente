@@ -21,6 +21,9 @@ supongas que sus repositorios existen en el otro sistema.
    controlar Herdr por SSH.
 2. Ejecuta `list_projects`. Usa sólo un identificador devuelto por esa llamada.
    Nunca inventes una ruta ni pidas al bridge que salga de su lista autorizada.
+   Para leer documentación o PDFs dentro de una raíz autorizada, usa
+   `read_file` con su ruta absoluta y resume su contenido antes de delegar una
+   tarea basada en ese documento.
 3. Antes de `start_codex`, explica el proyecto y la tarea concreta al usuario.
    Usa un nombre de agente único y descriptivo, en minúsculas.
 4. Después de iniciar, usa `prompt_agent` para enviar una tarea concreta. La
