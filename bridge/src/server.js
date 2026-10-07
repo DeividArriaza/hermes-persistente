@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { existsSync, readdirSync } from "node:fs";
 import { basename, extname, isAbsolute, join, relative, sep } from "node:path";
-import { readFile, realpath } from "node:fs/promises";
+import { readFile, realpath, writeFile } from "node:fs/promises";
 import { spawn } from "node:child_process";
 import express from "express";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -186,6 +186,7 @@ async function readAgentTranscript(agentName, lines = 240) {
 }
 
 async function createServer(config) {
+  const agentTarget = (name) => config.agentBindings[name] ?? name;
   const server = new McpServer({ name: `hermes-herdr-bridge-${config.nodeName}`, version: "0.1.0" });
 
   server.tool("node_health", "Comprueba el contexto del bridge y el servidor local de Herdr.", {}, async () => {
@@ -252,6 +253,14 @@ async function createServer(config) {
     const startArgs = ["agent", "start", agentName, "--kind", "codex", "--pane", paneId, "--", ...codexArgs];
     const started = await execute("herdr", startArgs, { env: account.env });
     if (started.code !== 0) return text(`No se pudo iniciar Codex: ${started.stderr || started.stdout}`, true);
+    try {
+      const response = JSON.parse(started.stdout);
+      if (response.error) return text(`Herdr rechazo el inicio: ${JSON.stringify(response.error)}`, true);
+    } catch {
+      // Algunas versiones emiten texto en lugar de JSON.
+    }
+    config.agentBindings[agentName] = paneId;
+    await writeFile(config.bindingsPath, JSON.stringify(config.agentBindings, null, 2), { mode: 0o600 });
     return text(JSON.stringify({ node: config.nodeName, project, agentName, paneId, account: account.email, result: started.stdout.trim() }, null, 2));
   });
 
@@ -262,6 +271,18 @@ async function createServer(config) {
       return text(error.message, true);
     }
     const result = await execute("herdr", ["agent", "list"]);
+    if (result.code === 0) {
+      try {
+        const response = JSON.parse(result.stdout);
+        for (const agent of response.result?.agents ?? []) {
+          const binding = Object.entries(config.agentBindings).find(([, pane]) => pane === agent.pane_id);
+          if (binding) agent.name = binding[0];
+        }
+        return text(JSON.stringify(response));
+      } catch {
+        // Conservar salida original si no es JSON.
+      }
+    }
     return text((result.stdout || result.stderr).trim(), result.code !== 0);
   });
 
@@ -274,10 +295,10 @@ async function createServer(config) {
     } catch (error) {
       return text(error.message, true);
     }
-    const result = await execute("herdr", ["agent", "prompt", agentName, task, "--wait", "--timeout", "120000"]);
+    const result = await execute("herdr", ["agent", "prompt", agentTarget(agentName), task, "--wait", "--timeout", "120000"]);
     if (result.code !== 0) return text((result.stdout || result.stderr).trim(), true);
 
-    const transcript = await readAgentTranscript(agentName);
+    const transcript = await readAgentTranscript(agentTarget(agentName));
     if (transcript.code !== 0) {
       return text(`La tarea terminó, pero no se pudo leer su salida: ${transcript.stderr || transcript.stdout}`, true);
     }
@@ -293,7 +314,7 @@ async function createServer(config) {
     } catch (error) {
       return text(error.message, true);
     }
-    const result = await readAgentTranscript(agentName, lines ?? 240);
+    const result = await readAgentTranscript(agentTarget(agentName), lines ?? 240);
     return text((result.stdout || result.stderr).trim(), result.code !== 0);
   });
 
@@ -301,7 +322,14 @@ async function createServer(config) {
 }
 
 async function main() {
-  const config = JSON.parse((await readFile(parseArguments(), "utf8")).replace(/^\uFEFF/, ""));
+  const configPath = parseArguments();
+  const config = JSON.parse((await readFile(configPath, "utf8")).replace(/^\uFEFF/, ""));
+  config.bindingsPath = `${configPath}.agents.json`;
+  try {
+    config.agentBindings = JSON.parse(await readFile(config.bindingsPath, "utf8"));
+  } catch {
+    config.agentBindings = {};
+  }
   if (!config.nodeName || !config.tokenEnv || (!config.allowedProjects && !config.allowedRoots)) throw new Error("Configuración incompleta.");
   const token = process.env[config.tokenEnv];
   if (!token) throw new Error(`Falta la variable de entorno ${config.tokenEnv}.`);
