@@ -88,13 +88,16 @@ function requireHerdrContext() {
 
 const IGNORED_DIRECTORIES = new Set([
   ".cache", ".codex", ".config", ".git", ".local", ".npm", ".ssh",
-  "node_modules", "vendor", ".venv", "venv", "dist", "build"
+  "node_modules", "vendor", ".venv", "venv", "dist", "build",
+  "windows", "program files", "program files (x86)", "programdata",
+  "appdata", "$recycle.bin", "system volume information"
 ]);
 
 function discoverGitProjects(root, maxDepth = 10) {
   const found = [];
+  const deadline = Date.now() + 8000;
   const visit = (directory, depth) => {
-    if (!existsSync(directory) || depth > maxDepth) return;
+    if (Date.now() > deadline || !existsSync(directory) || depth > maxDepth) return;
     if (existsSync(join(directory, ".git"))) {
       found.push(directory);
       return;
@@ -106,7 +109,8 @@ function discoverGitProjects(root, maxDepth = 10) {
       return;
     }
     for (const entry of entries) {
-      if (!entry.isDirectory() || entry.isSymbolicLink() || IGNORED_DIRECTORIES.has(entry.name)) continue;
+      if (Date.now() > deadline) break;
+      if (!entry.isDirectory() || entry.isSymbolicLink() || IGNORED_DIRECTORIES.has(entry.name.toLowerCase())) continue;
       visit(join(directory, entry.name), depth + 1);
     }
   };
@@ -187,10 +191,12 @@ async function createServer(config) {
   server.tool("node_health", "Comprueba el contexto del bridge y el servidor local de Herdr.", {}, async () => {
     const herdrContext = process.env.HERDR_ENV === "1";
     const status = await execute("herdr", ["status", "server"]);
+    const account = await verifyCodexAccount(config);
     return text(JSON.stringify({
       node: config.nodeName,
       herdrContext,
       herdrExitCode: status.code,
+      codexAccount: account.error ? { ready: false, error: account.error } : { ready: true, email: account.email },
       herdrStatus: `${status.stdout}${status.stderr}`.trim()
     }, null, 2), !herdrContext || status.code !== 0);
   });
@@ -221,7 +227,7 @@ async function createServer(config) {
     } catch (error) {
       return text(error.message, true);
     }
-    const projectPath = projectsFor(config)[project];
+    const projectPath = config.allowedProjects?.[project] ?? projectsFor(config)[project];
     if (!projectPath) return text(`Proyecto no autorizado: ${project}`, true);
     if (!existsSync(projectPath)) return text(`El proyecto configurado no existe: ${projectPath}`, true);
 
