@@ -1,5 +1,9 @@
 # Preparar Windows para Hermes y Herdr
 
+Para el uso diario y los errores observados después de la instalación, consulta
+[operación y fallos del bridge](operacion-y-fallos-del-bridge.md). Esa guía
+distingue abrir el CLI remoto, mantener el bridge activo y validar Codex.
+
 Este equipo Windows será un nodo de trabajo remoto. Hermes vive en Contabo y
 usará SSH sobre Tailscale para pedir a Herdr que inicie o supervise sesiones de
 Codex y OpenCode en esta computadora.

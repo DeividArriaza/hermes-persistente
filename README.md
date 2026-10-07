@@ -20,8 +20,14 @@ este repositorio.
 - Linux tiene Herdr, Codex y un bridge MCP activo, publicado como
   `linux_deiv`. Windows queda registrado como `windows_deiv` y se recupera
   cuando el equipo y su bridge estén activos.
-- Cada bridge inicia sin repositorios autorizados. Las rutas se conceden de
-  forma explícita en su `config.json` privado.
+- Los bridges autorizan rutas en su `config.json` privado y descubren Git bajo
+  `allowedRoots`. Linux tiene `/home/deiv`; Windows se amplió a discos locales.
+  La última corrección de asociación agente/panel Windows requiere validación
+  de control completo después de actualizar el nodo.
+
+Para iniciar, diagnosticar o recuperar una conexión, consulta
+[operación y fallos del bridge](docs/operacion-y-fallos-del-bridge.md). Incluye
+las causas comprobadas, comandos Windows/Linux y verificaciones pendientes.
 
 Lee [la arquitectura](docs/arquitectura.md) antes de otorgar acceso a otros
 dispositivos. Para preparar un equipo Windows como nodo de trabajo, usa la

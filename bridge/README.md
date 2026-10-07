@@ -8,6 +8,11 @@ El bridge escucha únicamente en `127.0.0.1`. Tailscale Serve publica su ruta
 `/mcp` de forma privada con HTTPS; no se abre ningún puerto en el router ni en
 Internet.
 
+La guía consolidada de [operación y fallos](../docs/operacion-y-fallos-del-bridge.md)
+registra diagnóstico, reparación Windows, autenticación y asociación de agentes.
+Después de actualizar este repositorio hay que actualizar también la copia del
+nodo y reiniciar su bridge; publicar en Git no actualiza un proceso ya abierto.
+
 ## Primera instalación en Windows
 
 1. Copia este directorio a Windows y abre PowerShell en él.

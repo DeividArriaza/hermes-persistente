@@ -1,5 +1,8 @@
 # Arquitectura de Hermes persistente
 
+Para los comandos vigentes, incidentes comprobados y pendientes de validación,
+consulta [operación y fallos del bridge](operacion-y-fallos-del-bridge.md).
+
 ## Objetivo
 
 Crear un agente general y persistente que conozca los proyectos de Deiv,
@@ -40,8 +43,10 @@ Herdr puede mostrar y mantener en una misma interfaz las sesiones de varias
 máquinas conectadas por SSH. Cada máquina conserva su propio servidor Herdr y
 sus procesos. Su CLI de automatización sólo puede controlar el servidor local
 cuando se ejecuta desde un panel que Herdr administra (`HERDR_ENV=1`). Una
-shell SSH externa, incluido Hermes en Contabo, no cumple esa condición y no
-debe usar `herdr agent prompt` para manejar la sesión de un usuario.
+shell SSH externa no obtiene automáticamente ese contexto. La operación diaria
+usa el bridge iniciado dentro de Herdr; durante mantenimiento se pudieron crear
+paneles por SSH reutilizando identificadores vigentes del Herdr local. No basta
+con establecer `HERDR_ENV=1`: también se necesitan panel/socket válidos.
 
 ## Conexión de dispositivos
 
@@ -78,7 +83,8 @@ HTTP que escucha sólo en `127.0.0.1`, exige un token por nodo y permite una
 lista explícita de proyectos. Tailscale Serve publica el endpoint privado con
 HTTPS hacia Hermes. Linux está activo y registrado como `linux_deiv`. Windows
 está registrado como `windows_deiv` y se recuperará cuando el equipo y su
-bridge estén activos. Ambos empiezan sin proyectos autorizados.
+bridge estén activos. Linux se amplió a `/home/deiv` y Windows a discos locales;
+las rutas reales se conservan en la configuración privada de cada nodo.
 
 ## Red, claves y alcance
 
