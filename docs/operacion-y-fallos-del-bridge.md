@@ -195,6 +195,18 @@ permitido bajo todas las raíces autorizadas.
 
 El bridge requiere `codexAccount.email` y `codexAccount.home` en config:
 
+En Linux se verifico posteriormente que la cuenta universitaria ya estaba
+autenticada en `/home/deiv/.codex`, pero config seguia sin esos campos desde
+septiembre. Fue una migracion incompleta de configuracion, no una perdida
+demostrada de credenciales. Se completo el perfil con esa ruta real.
+
+El servidor conserva ahora `config.json.codex-account.json` junto a config,
+fuera de Git y con permisos 0600 cuando el sistema los soporta. Contiene solo
+correo y ruta, no tokens. Si faltan campos en config, recupera los del respaldo;
+los campos declarados explicitamente tienen prioridad. Para cambiar cuenta,
+actualizar config y reiniciar. Conservar ambos archivos al migrar o actualizar
+el nodo; no reemplazar config con el ejemplo durante una actualizacion.
+
 ```json
 "codexAccount": {
   "email": "lop24730@uvg.edu.gt",

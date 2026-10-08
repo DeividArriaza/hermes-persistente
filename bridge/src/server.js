@@ -324,6 +324,19 @@ async function createServer(config) {
 async function main() {
   const configPath = parseArguments();
   const config = JSON.parse((await readFile(configPath, "utf8")).replace(/^\uFEFF/, ""));
+  // Conservar el perfil aparte de proyectos/raices para sobrevivir a una
+  // regeneracion incompleta de config.json. Un perfil explicito tiene prioridad.
+  const accountPath = `${configPath}.codex-account.json`;
+  let savedAccount = {};
+  try {
+    savedAccount = JSON.parse((await readFile(accountPath, "utf8")).replace(/^\uFEFF/, ""));
+  } catch (error) {
+    if (error.code !== "ENOENT") throw new Error(`No se pudo leer el respaldo de cuenta: ${accountPath}`);
+  }
+  config.codexAccount = { ...savedAccount, ...(config.codexAccount ?? {}) };
+  if (!codexAccountConfig(config).error) {
+    await writeFile(accountPath, JSON.stringify(config.codexAccount, null, 2), { mode: 0o600 });
+  }
   config.bindingsPath = `${configPath}.agents.json`;
   try {
     config.agentBindings = JSON.parse(await readFile(config.bindingsPath, "utf8"));
